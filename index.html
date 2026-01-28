@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PlantID AI - Intelligent Plant Identification</title>
+    <meta name="description" content="Identify any plant instantly with the power of Gemini AI and your camera.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <i data-lucide="leaf" class="logo-icon"></i>
+                <span>PlantID AI</span>
+            </div>
+            <button id="settings-btn" class="icon-btn" aria-label="Settings">
+                <i data-lucide="settings"></i>
+            </button>
+        </header>
+
+        <!-- Main View (Camera) -->
+        <main class="main-view">
+            <div id="camera-container" class="camera-wrapper">
+                <video id="camera-feed" autoplay playsinline muted></video>
+                <canvas id="capture-canvas" style="display: none;"></canvas>
+                
+                <!-- Camera Overlay -->
+                <div class="camera-overlay">
+                    <div class="focus-frame"></div>
+                    <p class="instruction">Point your camera at a plant</p>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="controls-layer">
+                <div class="capture-controls">
+                    <button id="gallery-btn" class="secondary-btn" aria-label="Upload from gallery">
+                        <i data-lucide="image"></i>
+                    </button>
+                    <button id="capture-btn" class="primary-btn pulse" aria-label="Identify plant">
+                        <div class="inner-circle"></div>
+                    </button>
+                    <button id="flip-camera-btn" class="secondary-btn" aria-label="Switch camera">
+                        <i data-lucide="refresh-cw"></i>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Identification Drawer (Hidden by default) -->
+        <div id="results-drawer" class="drawer">
+            <div class="drawer-handle"></div>
+            <div class="drawer-content">
+                <div class="loading-state" id="loading-state">
+                    <div class="scanner-line"></div>
+                    <div class="loading-text">Analyzing plant features...</div>
+                    <p class="sub-text">Powered by Gemini AI</p>
+                </div>
+
+                <div id="plant-details" class="plant-details hidden">
+                    <div class="detail-header">
+                        <h2 id="plant-name">Monstera Deliciosa</h2>
+                        <span id="plant-confidence" class="confidence-badge">98% Match</span>
+                    </div>
+                    <p id="plant-scientific" class="scientific-name">Monstera deliciosa</p>
+                    
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <i data-lucide="sun"></i>
+                            <div class="info-text">
+                                <label>Light</label>
+                                <span id="plant-light">Bright Indirect</span>
+                            </div>
+                        </div>
+                        <div class="info-item">
+                            <i data-lucide="droplets"></i>
+                            <div class="info-text">
+                                <label>Water</label>
+                                <span id="plant-water">Weekly</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="description-section">
+                        <h3>Description</h3>
+                        <p id="plant-description">
+                            The Monstera deliciosa is a species of flowering plant native to tropical forests of southern Mexico, south to Panama. It has been introduced to many tropical areas and has become a mildly invasive species in Hawaii, Seychelles, Ascension Island and the Society Islands.
+                        </p>
+                    </div>
+
+                    <button id="close-drawer" class="action-btn">Scan Another</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast hidden"></div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
+</body>
+</html>
