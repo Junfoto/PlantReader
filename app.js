@@ -1,22 +1,36 @@
 /**
  * PlantID AI - Core Application Logic
+ * Integrates Gemini 1.5 Flash for plant identification.
  */
 
 class PlantIDApp {
     constructor() {
+        // Core UI elements
         this.video = document.getElementById('camera-feed');
         this.canvas = document.getElementById('capture-canvas');
         this.captureBtn = document.getElementById('capture-btn');
         this.galleryBtn = document.getElementById('gallery-btn');
         this.flipBtn = document.getElementById('flip-camera-btn');
+        this.settingsBtn = document.getElementById('settings-btn');
+
+        // Drawer elements
         this.drawer = document.getElementById('results-drawer');
         this.closeDrawerBtn = document.getElementById('close-drawer');
         this.loadingState = document.getElementById('loading-state');
         this.plantDetails = document.getElementById('plant-details');
-        this.toast = document.getElementById('toast');
 
+        // Modal elements
+        this.settingsModal = document.getElementById('settings-modal');
+        this.closeSettingsBtn = document.getElementById('close-settings');
+        this.saveSettingsBtn = document.getElementById('save-settings');
+        this.apiKeyInput = document.getElementById('api-key-input');
+        this.toggleKeyVisibilityBtn = document.getElementById('toggle-key-visibility');
+
+        // Other
+        this.toast = document.getElementById('toast');
         this.stream = null;
-        this.facingMode = 'environment'; // Default to back camera
+        this.facingMode = 'environment';
+        this.apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
 
         this.init();
     }
@@ -24,14 +38,22 @@ class PlantIDApp {
     async init() {
         this.setupEventListeners();
         await this.startCamera();
+
+        if (!this.apiKey) {
+            this.showToast("Please enter your Gemini API key in Settings.");
+            this.openSettings();
+        }
     }
 
     setupEventListeners() {
         this.captureBtn.addEventListener('click', () => this.captureAndIdentify());
         this.flipBtn.addEventListener('click', () => this.toggleCamera());
         this.closeDrawerBtn.addEventListener('click', () => this.closeResults());
-        
-        // Mock gallery upload
+        this.settingsBtn.addEventListener('click', () => this.openSettings());
+        this.closeSettingsBtn.addEventListener('click', () => this.closeSettings());
+        this.saveSettingsBtn.addEventListener('click', () => this.saveApiKey());
+        this.toggleKeyVisibilityBtn.addEventListener('click', () => this.toggleKeyVisibility());
+
         this.galleryBtn.addEventListener('click', () => {
             const input = document.createElement('input');
             input.type = 'file';
@@ -39,6 +61,9 @@ class PlantIDApp {
             input.onchange = (e) => this.handleFileUpload(e);
             input.click();
         });
+
+        // Close modal on click outside
+        this.settingsModal.querySelector('.modal-backdrop').addEventListener('click', () => this.closeSettings());
     }
 
     async startCamera() {
@@ -65,72 +90,110 @@ class PlantIDApp {
     async toggleCamera() {
         this.facingMode = this.facingMode === 'user' ? 'environment' : 'user';
         await this.startCamera();
-        
-        // Add a little rotation animation to the button
-        this.flipBtn.style.transform = `rotate(${this.flipBtn.style.transform === 'rotate(180deg)' ? '0deg' : '180deg'})`;
+        this.flipBtn.style.transform = `rotate(${this.flipBtn.style.transform.includes('180') ? '0' : '180'}deg)`;
     }
 
     async captureAndIdentify() {
-        // 1. Capture image from video
+        if (!this.apiKey) {
+            this.showToast("API Key required. Open settings.");
+            this.openSettings();
+            return;
+        }
+
         const context = this.canvas.getContext('2d');
         this.canvas.width = this.video.videoWidth;
         this.canvas.height = this.video.videoHeight;
         context.drawImage(this.video, 0, 0, this.canvas.width, this.canvas.height);
-        
-        const imageData = this.canvas.toDataURL('image/jpeg');
 
-        // 2. Show UI state
+        const imageData = this.canvas.toDataURL('image/jpeg', 0.8);
+        const base64Data = imageData.split(',')[1];
+
         this.openResults();
         this.setLoading(true);
 
-        // 3. Call AI Identification (Simulated for Now)
         try {
-            const result = await this.mockIdentifyPlant(imageData);
+            const result = await this.identifyWithGemini(base64Data);
             this.displayResults(result);
         } catch (err) {
-            this.showToast("Identification failed. Please try again.");
+            console.error(err);
+            this.showToast(err.message || "Identification failed.");
             this.closeResults();
         } finally {
             this.setLoading(false);
         }
     }
 
-    handleFileUpload(event) {
+    async identifyWithGemini(base64Image) {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+
+        const prompt = `Identify this plant. Return a JSON object with: 
+        "name": (common name), 
+        "scientificName": (Latin name), 
+        "confidence": (percentage match as a number), 
+        "light": (brief lighting requirements), 
+        "water": (brief watering requirements), 
+        "description": (1-2 sentences about the plant). 
+        Only return the JSON object, no other text.`;
+
+        const response = await fetch(url, {
+            method: 'POST',
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                    ]
+                }]
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error?.message || "Gemini API error");
+        }
+
+        const data = await response.json();
+        const text = data.candidates[0].content.parts[0].text;
+
+        try {
+            // Clean markdown if Gemini returns it
+            const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+            return JSON.parse(cleanText);
+        } catch (e) {
+            console.error("Failed to parse JSON:", text);
+            throw new Error("Could not interpret AI response.");
+        }
+    }
+
+    async handleFileUpload(event) {
         const file = event.target.files[0];
-        if (!file) return;
+        if (!file || !this.apiKey) {
+            if (!this.apiKey) {
+                this.showToast("API Key required.");
+                this.openSettings();
+            }
+            return;
+        }
 
         const reader = new FileReader();
         reader.onload = async (e) => {
             const imageData = e.target.result;
+            const base64Data = imageData.split(',')[1];
+
             this.openResults();
             this.setLoading(true);
-            
+
             try {
-                const result = await this.mockIdentifyPlant(imageData);
+                const result = await this.identifyWithGemini(base64Data);
                 this.displayResults(result);
             } catch (err) {
-                this.showToast("Identification failed.");
+                this.showToast(err.message || "Identification failed.");
                 this.closeResults();
             } finally {
                 this.setLoading(false);
             }
         };
         reader.readAsDataURL(file);
-    }
-
-    async mockIdentifyPlant(imageData) {
-        // Simulate network/AI delay
-        await new Promise(resolve => setTimeout(resolve, 2500));
-
-        // Return a realistic sample response
-        return {
-            name: "Fiddle Leaf Fig",
-            scientificName: "Ficus lyrata",
-            confidence: 94,
-            light: "Bright, filtered light",
-            water: "Every 1-2 weeks",
-            description: "The Fiddle Leaf Fig is a species of flowering plant in the mulberry and fig family Moraceae. It is native to western Africa, from Cameroon west to Sierra Leone, where it grows in lowland tropical rainforest."
-        };
     }
 
     displayResults(data) {
@@ -142,6 +205,36 @@ class PlantIDApp {
         document.getElementById('plant-description').textContent = data.description;
 
         this.plantDetails.classList.remove('hidden');
+    }
+
+    // Modal & Drawer State
+    openSettings() {
+        this.apiKeyInput.value = this.apiKey;
+        this.settingsModal.classList.remove('hidden');
+    }
+
+    closeSettings() {
+        this.settingsModal.classList.add('hidden');
+    }
+
+    saveApiKey() {
+        const key = this.apiKeyInput.value.trim();
+        if (!key) {
+            this.showToast("Please enter a valid key.");
+            return;
+        }
+        this.apiKey = key;
+        localStorage.setItem('GEMINI_API_KEY', key);
+        this.showToast("Settings saved successfully!");
+        this.closeSettings();
+    }
+
+    toggleKeyVisibility() {
+        const type = this.apiKeyInput.type === 'password' ? 'text' : 'password';
+        this.apiKeyInput.type = type;
+        const icon = type === 'password' ? 'eye' : 'eye-off';
+        this.toggleKeyVisibilityBtn.innerHTML = `<i data-lucide="${icon}"></i>`;
+        lucide.createIcons();
     }
 
     openResults() {
@@ -177,4 +270,5 @@ class PlantIDApp {
 // Start the app
 window.addEventListener('DOMContentLoaded', () => {
     new PlantIDApp();
+    lucide.createIcons();
 });

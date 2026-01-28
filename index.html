@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,10 +8,13 @@
     <meta name="description" content="Identify any plant instantly with the power of Gemini AI and your camera.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Outfit:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- Header -->
@@ -29,7 +33,7 @@
             <div id="camera-container" class="camera-wrapper">
                 <video id="camera-feed" autoplay playsinline muted></video>
                 <canvas id="capture-canvas" style="display: none;"></canvas>
-                
+
                 <!-- Camera Overlay -->
                 <div class="camera-overlay">
                     <div class="focus-frame"></div>
@@ -69,7 +73,7 @@
                         <span id="plant-confidence" class="confidence-badge">98% Match</span>
                     </div>
                     <p id="plant-scientific" class="scientific-name">Monstera deliciosa</p>
-                    
+
                     <div class="info-grid">
                         <div class="info-item">
                             <i data-lucide="sun"></i>
@@ -90,11 +94,41 @@
                     <div class="description-section">
                         <h3>Description</h3>
                         <p id="plant-description">
-                            The Monstera deliciosa is a species of flowering plant native to tropical forests of southern Mexico, south to Panama. It has been introduced to many tropical areas and has become a mildly invasive species in Hawaii, Seychelles, Ascension Island and the Society Islands.
+                            The Monstera deliciosa is a species of flowering plant native to tropical forests of
+                            southern Mexico, south to Panama. It has been introduced to many tropical areas and has
+                            become a mildly invasive species in Hawaii, Seychelles, Ascension Island and the Society
+                            Islands.
                         </p>
                     </div>
 
                     <button id="close-drawer" class="action-btn">Scan Another</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Modal -->
+        <div id="settings-modal" class="modal hidden">
+            <div class="modal-backdrop"></div>
+            <div class="modal-container">
+                <div class="modal-header">
+                    <h3>Settings</h3>
+                    <button id="close-settings" class="icon-btn sm">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <label for="api-key">Gemini API Key</label>
+                        <div class="input-wrapper">
+                            <input type="password" id="api-key-input" placeholder="Enter your Gemini API key...">
+                            <button id="toggle-key-visibility" class="inner-icon-btn">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                        <p class="input-hint">Get one for free at <a href="https://aistudio.google.com/app/apikey"
+                                target="_blank">Google AI Studio</a></p>
+                    </div>
+                    <button id="save-settings" class="action-btn">Save Key</button>
                 </div>
             </div>
         </div>
@@ -109,4 +143,5 @@
         lucide.createIcons();
     </script>
 </body>
+
 </html>
