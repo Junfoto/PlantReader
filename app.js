@@ -139,7 +139,7 @@ class PlantIDApp {
     }
 
     async identifyWithGemini(base64Image) {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${this.apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
 
         const prompt = `Identify this plant. Return a JSON object with: 
         "name": (common name), 
