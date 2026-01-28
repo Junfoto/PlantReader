@@ -26,6 +26,11 @@ class PlantIDApp {
         this.apiKeyInput = document.getElementById('api-key-input');
         this.toggleKeyVisibilityBtn = document.getElementById('toggle-key-visibility');
 
+        // Landing screen elements
+        this.landingScreen = document.getElementById('landing-screen');
+        this.startScanBtn = document.getElementById('start-scan-btn');
+        this.mainView = document.querySelector('.main-view');
+
         // Other
         this.toast = document.getElementById('toast');
         this.stream = null;
@@ -37,7 +42,6 @@ class PlantIDApp {
 
     async init() {
         this.setupEventListeners();
-        await this.startCamera();
 
         if (!this.apiKey) {
             this.showToast("Please enter your Gemini API key in Settings.");
@@ -46,6 +50,7 @@ class PlantIDApp {
     }
 
     setupEventListeners() {
+        this.startScanBtn.addEventListener('click', () => this.handleStartScan());
         this.captureBtn.addEventListener('click', () => this.captureAndIdentify());
         this.flipBtn.addEventListener('click', () => this.toggleCamera());
         this.closeDrawerBtn.addEventListener('click', () => this.closeResults());
@@ -64,6 +69,16 @@ class PlantIDApp {
 
         // Close modal on click outside
         this.settingsModal.querySelector('.modal-backdrop').addEventListener('click', () => this.closeSettings());
+    }
+
+    async handleStartScan() {
+        this.landingScreen.classList.add('fade-out');
+        setTimeout(() => {
+            this.landingScreen.classList.add('hidden');
+            this.mainView.classList.remove('hidden');
+        }, 500);
+
+        await this.startCamera();
     }
 
     async startCamera() {
