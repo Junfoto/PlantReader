@@ -37,6 +37,7 @@ class PlantIDApp {
         this.facingMode = 'environment';
         this.apiKey = localStorage.getItem('GEMINI_API_KEY') || '';
 
+        this.isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         this.init();
     }
 
@@ -46,6 +47,19 @@ class PlantIDApp {
         if (!this.apiKey) {
             this.showToast("Please enter your Gemini API key in Settings.");
             this.openSettings();
+        }
+
+        this.initMobileConnectivity();
+    }
+
+    initMobileConnectivity() {
+        if (!this.isMobile) {
+            const hint = document.getElementById('mobile-connect-hint');
+            const qrImg = document.getElementById('qr-code');
+            const currentUrl = window.location.href;
+
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(currentUrl)}`;
+            hint.classList.remove('hidden');
         }
     }
 
@@ -86,19 +100,45 @@ class PlantIDApp {
             this.stream.getTracks().forEach(track => track.stop());
         }
 
-        try {
-            this.stream = await navigator.mediaDevices.getUserMedia({
+        const constraints = [
+            {
                 video: {
                     facingMode: this.facingMode,
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 },
                 audio: false
-            });
-            this.video.srcObject = this.stream;
-        } catch (err) {
-            console.error("Camera access error:", err);
-            this.showToast("Cannot access camera. Please check permissions.");
+            },
+            {
+                video: { facingMode: this.facingMode },
+                audio: false
+            },
+            {
+                video: true,
+                audio: false
+            }
+        ];
+
+        let lastError = null;
+
+        for (const constraint of constraints) {
+            try {
+                this.stream = await navigator.mediaDevices.getUserMedia(constraint);
+                this.video.srcObject = this.stream;
+                return; // Success
+            } catch (err) {
+                lastError = err;
+                console.warn(`Constraint failed:`, constraint, err);
+            }
+        }
+
+        console.error("All camera access attempts failed:", lastError);
+        if (lastError.name === 'NotAllowedError') {
+            this.showToast("Camera access denied. Please enable it in browser settings.");
+        } else if (lastError.name === 'NotFoundError') {
+            this.showToast("No camera found on this device.");
+        } else {
+            this.showToast("Cannot access camera. Try refreshing the page.");
         }
     }
 

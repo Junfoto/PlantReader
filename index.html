@@ -34,10 +34,19 @@
                 <i data-lucide="leaf" class="landing-logo-icon"></i>
                 <h1 class="landing-title">Welcome to PlantID AI</h1>
                 <p class="landing-subtitle">Identify any plant instantly using your camera.</p>
-                <button id="start-scan-btn" class="action-btn primary-glow">
-                    <i data-lucide="camera"></i>
-                    Scan Plant
-                </button>
+                <div class="landing-actions">
+                    <button id="start-scan-btn" class="action-btn primary-glow">
+                        <i data-lucide="camera"></i>
+                        Scan Plant
+                    </button>
+
+                    <div id="mobile-connect-hint" class="mobile-hint hidden">
+                        <p>For best results, scan with your phone:</p>
+                        <div class="qr-container">
+                            <img id="qr-code" src="" alt="Scan to open on mobile">
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
