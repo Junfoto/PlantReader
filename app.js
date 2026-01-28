@@ -179,45 +179,70 @@ class PlantIDApp {
     }
 
     async identifyWithGemini(base64Image) {
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${this.apiKey}`;
+        const models = [
+            'gemini-3-flash',
+            'gemini-2.5-flash',
+            'gemini-2.0-flash'
+        ];
 
-        const prompt = `Identify this plant. Return a JSON object with: 
-        "name": (common name), 
-        "scientificName": (Latin name), 
-        "confidence": (percentage match as a number), 
-        "light": (brief lighting requirements), 
-        "water": (brief watering requirements), 
-        "description": (1-2 sentences about the plant). 
-        Only return the JSON object, no other text.`;
+        let lastError = null;
 
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: prompt },
-                        { inline_data: { mime_type: "image/jpeg", data: base64Image } }
-                    ]
-                }]
-            })
-        });
+        for (const model of models) {
+            try {
+                const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${this.apiKey}`;
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error?.message || "Gemini API error");
+                const prompt = `Identify this plant. Return a JSON object with: 
+                "name": (common name), 
+                "scientificName": (Latin name), 
+                "confidence": (percentage match as a number), 
+                "light": (brief lighting requirements), 
+                "water": (brief watering requirements), 
+                "description": (1-2 sentences about the plant). 
+                Only return the JSON object, no other text.`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: prompt },
+                                { inline_data: { mime_type: "image/jpeg", data: base64Image } }
+                            ]
+                        }]
+                    })
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    // If it's a "model not found" or "unsupported" error, try next model
+                    if (response.status === 404 || error.error?.message?.includes('not found') || error.error?.message?.includes('supported')) {
+                        console.warn(`Model ${model} not available, trying next...`);
+                        lastError = new Error(error.error?.message || `Model ${model} failed`);
+                        continue;
+                    }
+                    throw new Error(error.error?.message || "Gemini API error");
+                }
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+
+                try {
+                    const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
+                    return JSON.parse(cleanText);
+                } catch (e) {
+                    console.error("Failed to parse JSON:", text);
+                    throw new Error("Could not interpret AI response.");
+                }
+            } catch (err) {
+                lastError = err;
+                if (err.message.includes('not found') || err.message.includes('supported')) {
+                    continue;
+                }
+                throw err;
+            }
         }
 
-        const data = await response.json();
-        const text = data.candidates[0].content.parts[0].text;
-
-        try {
-            // Clean markdown if Gemini returns it
-            const cleanText = text.replace(/```json\n?|\n?```/g, "").trim();
-            return JSON.parse(cleanText);
-        } catch (e) {
-            console.error("Failed to parse JSON:", text);
-            throw new Error("Could not interpret AI response.");
-        }
+        throw lastError || new Error("All identification models failed.");
     }
 
     async handleFileUpload(event) {
